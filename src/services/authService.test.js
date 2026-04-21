@@ -99,6 +99,16 @@ describe("authService", () => {
         expect(localStorage.getItem("utilisateur")).toBeNull();
     });
 
+    it("login sans user ne sauvegarde pas dans localStorage", async () => {
+        apiMock.post.mockResolvedValue({ data: {} });
+
+        const result = await authService.login("b@test.com", "pwd");
+
+        expect(result.user).toBeNull();
+        expect(localStorage.getItem("token")).toBeNull();
+        expect(localStorage.getItem("utilisateur")).toBeNull();
+    });
+
     it("envoie un FormData pour uploadPhoto", async () => {
         const fakeFile = new File(["a"], "photo.jpg", { type: "image/jpeg" });
         apiMock.post.mockResolvedValue({ data: { user: { nom: "Dana" } } });
@@ -111,6 +121,16 @@ describe("authService", () => {
             { headers: { "Content-Type": "multipart/form-data" } }
         );
         expect(result.user.name).toBe("Dana");
+    });
+
+    it("uploadPhoto sans user dans la reponse retourne user null", async () => {
+        const fakeFile = new File(["a"], "photo.jpg", { type: "image/jpeg" });
+        apiMock.post.mockResolvedValue({ data: {} });
+
+        const result = await authService.uploadPhoto(fakeFile);
+
+        expect(result.user).toBeNull();
+        expect(localStorage.getItem("utilisateur")).toBeNull();
     });
 
     it("retourne null si utilisateur local absent ou invalide", () => {
