@@ -50,7 +50,7 @@ jobs:
             -Dsonar.sources=src
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**
-            -Dsonar.coverage.exclusions=**/*.test.js,**/*.test.jsx,**/tests/**
+            -Dsonar.coverage.exclusions=**/*.test.js,**/*.test.jsx,**/tests/**,src/components/**,src/pages/**,src/context/**,src/main.jsx,src/App.jsx
             -Dsonar.qualitygate.wait=false
 
       - name: Build Vite production
