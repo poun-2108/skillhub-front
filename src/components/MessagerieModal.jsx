@@ -14,6 +14,9 @@ export default function MessagerieModal({ onFermer }) {
     const [chargementInit, setChargementInit] = useState(true);
     const [erreur,         setErreur]         = useState('');
 
+    const pollingRef     = useRef(null);
+    const messagesFinRef = useRef(null);
+
     useEffect(() => {
         chargerConversations().finally(() => setChargementInit(false));
     }, []);
