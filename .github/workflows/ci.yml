@@ -33,8 +33,14 @@ jobs:
       - name: Lint ESLint
         run: npm run lint
 
-      - name: Tests Vitest
-        run: npm test
+      - name: Tests Vitest avec coverage
+        run: npm run test:coverage
+
+      - name: Analyse SonarCloud
+        uses: sonarsource/sonarcloud-github-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Vite production
         run: npm run build
