@@ -1,12 +1,12 @@
-import api from './axiosConfig';
+// @author MU202605
+// Service d'authentification
+// Les appels login, register, profile et logout vont vers SpringBoot
+// L'upload de photo reste sur Laravel car c'est une fonctionnalite metier
 
-/**
- * Normalise l'utilisateur reçu du backend.
- * Le backend Laravel renvoie surtout "nom", mais certaines pages utilisent aussi "name".
- *
- * @param {object|null} user
- * @returns {object|null}
- */
+import api from './axiosConfig';
+import authApi from './authApiConfig';
+
+// Normalise les champs nom/name pour compatibilite entre SpringBoot et Laravel
 function normaliserUtilisateur(user) {
     if (!user) {
         return null;
@@ -20,61 +20,42 @@ function normaliserUtilisateur(user) {
 }
 
 const authService = {
-    /**
-     * Inscription utilisateur.
-     *
-     * @param {string} nom
-     * @param {string} email
-     * @param {string} password
-     * @param {string} role
-     * @returns {Promise<object>}
-     */
+
+    // Inscription via SpringBoot puis connexion automatique
     async register(nom, email, password, passwordConfirmation, role) {
-        const payload = {
-            nom,
+        const response = await authApi.post('/register', {
+            name: nom,
             email,
             password,
-            password_confirmation: passwordConfirmation,
             role
-        };
+        });
 
-        const reponse = await api.post('/register', payload);
-
-        const utilisateurNormalise = normaliserUtilisateur(reponse.data.user);
-
-        if (reponse.data.token) {
-            localStorage.setItem('token', reponse.data.token);
+        // Si l'inscription reussit sans erreur on connecte l'utilisateur automatiquement
+        if (response.data && !response.data.error) {
+            try {
+                return await authService.login(email, password);
+            } catch (e) {
+                // Si la connexion echoue (ex: email non verifie) on retourne la reponse d'inscription
+                return { ...response.data, user: null };
+            }
         }
 
-        if (utilisateurNormalise) {
-            localStorage.setItem('utilisateur', JSON.stringify(utilisateurNormalise));
-        }
-
-        return {
-            ...reponse.data,
-            user: utilisateurNormalise
-        };
+        return { ...response.data, user: null };
     },
 
-    /**
-     * Connexion utilisateur.
-     *
-     * @param {string} email
-     * @param {string} password
-     * @returns {Promise<object>}
-     */
+    // Connexion via SpringBoot en deux etapes
+    // Etape 1: obtenir la preuve HMAC depuis le service
+    // Etape 2: s'authentifier avec la preuve
     async login(email, password) {
-        const payload = {
-            email,
-            password
-        };
+        const proofReponse = await authApi.post('/client-proof', { email, password });
+        const { nonce, timestamp, hmac } = proofReponse.data;
 
-        const reponse = await api.post('/login', payload);
+        const loginReponse = await authApi.post('/login', { email, nonce, timestamp, hmac });
 
-        const utilisateurNormalise = normaliserUtilisateur(reponse.data.user);
+        const utilisateurNormalise = normaliserUtilisateur(loginReponse.data.user || loginReponse.data);
 
-        if (reponse.data.token) {
-            localStorage.setItem('token', reponse.data.token);
+        if (loginReponse.data.token) {
+            localStorage.setItem('token', loginReponse.data.token);
         }
 
         if (utilisateurNormalise) {
@@ -82,20 +63,16 @@ const authService = {
         }
 
         return {
-            ...reponse.data,
+            ...loginReponse.data,
             user: utilisateurNormalise
         };
     },
 
-    /**
-     * Profil utilisateur connecté.
-     *
-     * @returns {Promise<object>}
-     */
+    // Recupere le profil de l'utilisateur connecte depuis SpringBoot
     async profile() {
-        const reponse = await api.get('/profile');
+        const reponse = await authApi.get('/me');
 
-        const utilisateurNormalise = normaliserUtilisateur(reponse.data.user);
+        const utilisateurNormalise = normaliserUtilisateur(reponse.data.user || reponse.data);
 
         if (utilisateurNormalise) {
             localStorage.setItem('utilisateur', JSON.stringify(utilisateurNormalise));
@@ -107,13 +84,9 @@ const authService = {
         };
     },
 
-    /**
-     * Déconnexion utilisateur.
-     *
-     * @returns {Promise<object>}
-     */
+    // Deconnexion via SpringBoot
     async logout() {
-        const reponse = await api.post('/logout', {});
+        const reponse = await authApi.post('/logout', {});
 
         localStorage.removeItem('token');
         localStorage.removeItem('utilisateur');
@@ -121,12 +94,7 @@ const authService = {
         return reponse.data;
     },
 
-    /**
-     * Upload photo de profil.
-     *
-     * @param {File} fichier
-     * @returns {Promise<object>}
-     */
+    // Upload photo de profil via Laravel car c'est une fonctionnalite metier
     async uploadPhoto(fichier) {
         const formData = new FormData();
         formData.append('photo', fichier);
@@ -147,11 +115,7 @@ const authService = {
         };
     },
 
-    /**
-     * Retourne l'utilisateur local.
-     *
-     * @returns {object|null}
-     */
+    // Retourne l'utilisateur depuis le stockage local
     getUtilisateur() {
         const utilisateur = localStorage.getItem('utilisateur');
 
@@ -166,27 +130,17 @@ const authService = {
         }
     },
 
-    /**
-     * Retourne le token local.
-     *
-     * @returns {string|null}
-     */
+    // Retourne le token stocke localement
     getToken() {
         return localStorage.getItem('token');
     },
 
-    /**
-     * Vérifie si un token existe.
-     *
-     * @returns {boolean}
-     */
+    // Verifie si un token existe
     estConnecte() {
         return !!localStorage.getItem('token');
     },
 
-    /**
-     * Nettoyage local.
-     */
+    // Supprime le token et l'utilisateur du stockage local
     clear() {
         localStorage.removeItem('token');
         localStorage.removeItem('utilisateur');
