@@ -15,10 +15,6 @@ jobs:
     name: Lint ESLint + Tests + Build Vite
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: skillhub-front
-
     steps:
 
       - name: Checkout du code
@@ -29,7 +25,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: skillhub-front/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Installer les dependances npm
         run: npm ci
@@ -48,10 +44,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'push'
-
-    defaults:
-      run:
-        working-directory: skillhub-front
 
     steps:
 
