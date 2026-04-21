@@ -19,6 +19,8 @@ jobs:
 
       - name: Checkout du code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configurer Node.js 22
         uses: actions/setup-node@v4
@@ -41,6 +43,14 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=poun-2108
+            -Dsonar.projectKey=poun-2108_skillhub-front
+            -Dsonar.sources=src
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**
+            -Dsonar.coverage.exclusions=**/*.test.js,**/*.test.jsx,**/tests/**
 
       - name: Build Vite production
         run: npm run build
